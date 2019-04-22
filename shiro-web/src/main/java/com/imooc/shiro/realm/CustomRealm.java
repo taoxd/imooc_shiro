@@ -1,5 +1,7 @@
 package com.imooc.shiro.realm;
 
+import com.imooc.dao.UserDao;
+import com.imooc.vo.User;
 import org.apache.shiro.authc.AuthenticationException;
 import org.apache.shiro.authc.AuthenticationInfo;
 import org.apache.shiro.authc.AuthenticationToken;
@@ -11,10 +13,8 @@ import org.apache.shiro.realm.AuthorizingRealm;
 import org.apache.shiro.subject.PrincipalCollection;
 import org.apache.shiro.util.ByteSource;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import javax.annotation.Resource;
+import java.util.*;
 
 /**
  * @Auther: taoxd
@@ -23,12 +23,8 @@ import java.util.Set;
  */
 public class CustomRealm extends AuthorizingRealm {
 
-    private final Map<String, String> userMap = new HashMap<String, String>(16);
-
-    {
-        userMap.put("Mark", "283538989cef48f3d7d8a1c1bdf2008f");
-        super.setName("customRealm");
-    }
+    @Resource
+    private UserDao userDao;
 
     /**
      * 授权
@@ -55,9 +51,8 @@ public class CustomRealm extends AuthorizingRealm {
     }
 
     private Set<String> getRolesByUserName(String userName) {
-        Set<String> sets = new HashSet<String>();
-        sets.add("admin");
-        sets.add("user");
+        List<String> list = userDao.queryRolesByUserName(userName);
+        Set<String> sets = new HashSet<String>(list);
         return sets;
     }
 
@@ -77,8 +72,8 @@ public class CustomRealm extends AuthorizingRealm {
         if (password == null) {
             return null;
         }
-        SimpleAuthenticationInfo authenticationInfo = new SimpleAuthenticationInfo("Mark", password, "customRealm");
-        authenticationInfo.setCredentialsSalt(ByteSource.Util.bytes("Mark"));
+        SimpleAuthenticationInfo authenticationInfo = new SimpleAuthenticationInfo(userName, password, "customRealm");
+        authenticationInfo.setCredentialsSalt(ByteSource.Util.bytes(userName));
         return authenticationInfo;
     }
 
@@ -89,7 +84,11 @@ public class CustomRealm extends AuthorizingRealm {
      * @return
      */
     private String getPasswordByUserName(String userName) {
-        return userMap.get(userName);
+        User user = userDao.getUserByUserName(userName);
+        if (user != null) {
+            return user.getPassword();
+        }
+        return null;
     }
 
     public static void main(String[] args) {
